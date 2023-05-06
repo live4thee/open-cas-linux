@@ -17,12 +17,9 @@ from test_utils.size import Size, Unit
 block_size = Size(1, Unit.Blocks4096)
 
 
-@pytest.mark.parametrize(
-    "cache_mode", CacheMode.with_any_trait(CacheModeTrait.InsertRead | CacheModeTrait.InsertWrite)
-)
 @pytest.mark.require_disk("cache", DiskTypeSet([DiskType.optane, DiskType.nand]))
 @pytest.mark.require_disk("core", DiskTypeLowerThan("cache"))
-def test_one_core_remove(cache_mode):
+def test_one_core_remove():
     """
         title: Test if OpenCAS correctly handles removal of one of multiple core devices.
         description: |
@@ -46,6 +43,7 @@ def test_one_core_remove(cache_mode):
         Udev.disable()
 
     with TestRun.step("Start cache"):
+        cache_mode = CacheMode.WT
         cache = casadm.start_cache(cache_dev, cache_mode, force=True)
         caches_count = len(casadm_parser.get_caches())
         if caches_count != 1:
@@ -89,9 +87,7 @@ def test_one_core_remove(cache_mode):
         casadm.stop_all_caches()
 
 
-@pytest.mark.parametrize(
-    "cache_mode", CacheMode.with_any_trait(CacheModeTrait.InsertRead | CacheModeTrait.InsertWrite)
-)
+@pytest.mark.parametrizex("cache_mode", [CacheMode.WT])
 @pytest.mark.require_disk("cache", DiskTypeSet([DiskType.optane, DiskType.nand]))
 @pytest.mark.require_disk("core", DiskTypeLowerThan("cache"))
 def test_one_core_release(cache_mode):
@@ -155,10 +151,11 @@ def test_one_core_release(cache_mode):
         casadm.stop_all_caches()
 
 
+@pytest.mark.parametrize("cache_mode", [CacheMode.WT, CacheMode.WB])
 @pytest.mark.require_disk("cache", DiskTypeSet([DiskType.optane, DiskType.nand]))
 @pytest.mark.require_disk("core1", DiskTypeLowerThan("cache"))
 @pytest.mark.require_disk("core2", DiskTypeLowerThan("cache"))
-def test_one_core_fail():
+def test_one_core_fail(cache_mode):
     """
         title: Test if OpenCAS correctly handles failure of one of multiple core devices.
         description: |
@@ -181,7 +178,6 @@ def test_one_core_fail():
         Udev.disable()
 
     with TestRun.step("Start cache"):
-        cache_mode = CacheMode.WT
         cache = casadm.start_cache(cache_part, cache_mode=cache_mode, force=True)
         caches_count = len(casadm_parser.get_caches())
         if caches_count != 1:

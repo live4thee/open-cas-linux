@@ -29,6 +29,7 @@ from test_tools.mdadm import Mdadm
 from test_tools.fs_utils import remove
 from log.logger import create_log, Log
 from test_utils.singleton import Singleton
+from storage_devices.lvm import Lvm, LvmConfiguration
 
 
 class Opencas(metaclass=Singleton):
@@ -36,6 +37,7 @@ class Opencas(metaclass=Singleton):
         self.repo_dir = repo_dir
         self.working_dir = working_dir
         self.already_updated = False
+        self.fuzzy_iter_count = 1000
 
 
 def pytest_collection_modifyitems(config, items):
@@ -105,6 +107,8 @@ def pytest_runtest_setup(item):
         TestRun.usr = Opencas(
             repo_dir=os.path.join(os.path.dirname(__file__), "../../.."),
             working_dir=dut_config['working_dir'])
+        if item.config.getoption('--fuzzy-iter-count'):
+            TestRun.usr.fuzzy_iter_count = int(item.config.getoption('--fuzzy-iter-count'))
 
         TestRun.LOGGER.info(f"DUT info: {TestRun.dut}")
         TestRun.dut.plugin_manager = TestRun.plugin_manager
@@ -184,6 +188,7 @@ def pytest_addoption(parser):
     parser.addoption("--log-path", action="store",
                      default=f"{os.path.join(os.path.dirname(__file__), '../results')}")
     parser.addoption("--force-reinstall", action="store_true", default=False)
+    parser.addoption("--fuzzy-iter-count", action="store")
 
 
 def unmount_cas_devices():
@@ -243,6 +248,11 @@ def base_prepare(item):
         from storage_devices.drbd import Drbd
         if Drbd.is_installed():
             __drbd_cleanup()
+
+        lvms = Lvm.discover()
+        if lvms:
+            Lvm.remove_all()
+            LvmConfiguration.remove_filters_from_config()
 
         raids = Raid.discover()
         for raid in raids:

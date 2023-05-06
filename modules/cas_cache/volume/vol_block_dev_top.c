@@ -64,10 +64,10 @@ static void blkdev_set_discard_properties(ocf_cache_t cache,
 	core_q = bdev_get_queue(core_bd);
 	cache_q = bdev_get_queue(cache_bd);
 
-	CAS_QUEUE_FLAG_SET(QUEUE_FLAG_DISCARD, exp_q);
+	cas_set_discard_flag(exp_q);
 
 	CAS_SET_DISCARD_ZEROES_DATA(exp_q->limits, 0);
-	if (core_q && blk_queue_discard(core_q)) {
+	if (core_q && cas_has_discard_support(core_bd)) {
 		blk_queue_max_discard_sectors(exp_q, core_q->limits.max_discard_sectors);
 		exp_q->limits.discard_alignment =
 			bdev_discard_alignment(core_bd);
@@ -516,7 +516,6 @@ static int kcas_volume_create_exported_object(ocf_volume_t volume,
 		const char *name, void *priv, struct cas_exp_obj_ops *ops)
 {
 	struct bd_object *bvol = bd_object(volume);
-	char dev_name[DISK_NAME_LEN];
 	int result;
 
 	bvol->expobj_wq = alloc_workqueue("expobj_wq_%s",
@@ -539,7 +538,7 @@ static int kcas_volume_create_exported_object(ocf_volume_t volume,
 end:
 	if (result) {
 		printk(KERN_ERR "Cannot create exported object %s. Error code %d\n",
-				dev_name, result);
+				name, result);
 	}
 	return result;
 }

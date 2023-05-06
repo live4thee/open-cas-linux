@@ -7,6 +7,8 @@
 import os
 import re
 
+import pytest
+
 from api.cas.installer import clean_opencas_repo, rsync_opencas_sources
 from core.test_run import TestRun
 from test_tools.fs_utils import (
@@ -15,13 +17,14 @@ from test_tools.fs_utils import (
     readlink,
     remove,
 )
-from test_tools.packaging import Packages
+from api.cas.packaging import Packages
 
 
 modules_links_dir = "/lib/modules/$(uname -r)/weak-updates/block/opencas"
 modules_names = ["cas_cache.ko"]
 
 
+@pytest.mark.os_dependent
 def test_weak_modules():
     """
     title: Test for weak-modules symlinks handling.
@@ -54,7 +57,7 @@ def test_weak_modules():
         cas_pkg.create(TestRun.usr.working_dir)
 
     with TestRun.step("Remove any previous installations and cleanup"):
-        cas_pkg.uninstall("open-cas-linux")
+        cas_pkg.uninstall_all_matching("open-cas-linux")
         remove(modules_links_dir, recursive=True, force=True)
 
     with TestRun.step("Install RPM packages and check for module symlinks"):
